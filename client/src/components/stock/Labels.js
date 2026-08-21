@@ -7,8 +7,8 @@ const ROWS_OPTIONS = [5, 10, 20, 50];
 
 function statusBadge(status) {
   if (status === 'OUT_OF_STOCK') return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200 whitespace-nowrap">Out of Stock</span>;
-  if (status === 'LOW_STOCK')   return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200 whitespace-nowrap">Low Stock</span>;
-  if (status === 'NORMAL')      return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200 whitespace-nowrap">Normal</span>;
+  if (status === 'LOW_STOCK') return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200 whitespace-nowrap">Low Stock</span>;
+  if (status === 'NORMAL') return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200 whitespace-nowrap">Normal</span>;
   return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 whitespace-nowrap">Unknown</span>;
 }
 
@@ -16,15 +16,15 @@ const inputCls = "w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm f
 const labelCls = "block text-sm font-medium text-gray-700 mb-1.5";
 
 export default function LabelManagement() {
-  const [labels, setLabels]             = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [error, setError]               = useState('');
-  const [success, setSuccess]           = useState('');
-  const [isModalOpen, setIsModalOpen]   = useState(false);
-  const [isEditMode, setIsEditMode]     = useState(false);
+  const [labels, setLabels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [currentLabelId, setCurrentLabelId] = useState(null);
-  const [page, setPage]                 = useState(0);
-  const [rowsPerPage, setRowsPerPage]   = useState(10);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // History modal
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
@@ -33,10 +33,10 @@ export default function LabelManagement() {
   const [historyLabel, setHistoryLabel] = useState(null);
 
   // Bottles (categories) from API
-  const [bottles, setBottles]           = useState([]);
+  const [bottles, setBottles] = useState([]);
   const [bottlesLoading, setBottlesLoading] = useState(false);
 
-  const [searchQuery, setSearchQuery]       = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
 
@@ -47,7 +47,7 @@ export default function LabelManagement() {
 
   // Delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [labelToDelete, setLabelToDelete]       = useState(null);
+  const [labelToDelete, setLabelToDelete] = useState(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
@@ -61,7 +61,15 @@ export default function LabelManagement() {
       setBottlesLoading(true);
       try {
         const res = await getBottleProductionCategories();
-        setBottles(res?.data || []);
+        const rawList = Array.isArray(res?.data)
+          ? res.data
+          : Array.isArray(res?.data?.bottleCategories)
+            ? res.data.bottleCategories
+            : Array.isArray(res)
+              ? res
+              : [];
+        const bottleOnly = rawList.filter(b => !b.type || b.type.toLowerCase() === 'bottle');
+        setBottles(bottleOnly.length > 0 ? bottleOnly : rawList);
       } catch (err) {
         console.error('Failed to load bottles:', err);
       } finally {
@@ -77,8 +85,8 @@ export default function LabelManagement() {
       const params = {};
       if (categoryFilter) params.bottleCategory = categoryFilter;
       const response = await getLabels(params);
-      if (response.success) {
-        let data = response.data || [];
+      if (response && (response.success || response.status)) {
+        let data = Array.isArray(response.data) ? response.data : (Array.isArray(response) ? response : []);
         if (debouncedSearch) {
           data = data.filter(l =>
             l.bottleName?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
@@ -171,7 +179,8 @@ export default function LabelManagement() {
     setHistoryLoading(true);
     try {
       const response = await getLabelHistory(label._id);
-      setLabelHistory(response.data || []);
+      const histData = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
+      setLabelHistory(histData);
     } catch (err) {
       setError(err.message || 'Failed to fetch label history');
     } finally {
@@ -179,8 +188,8 @@ export default function LabelManagement() {
     }
   };
 
-  const uniqueCategories = [...new Set(labels.map(l => l.bottleCategory).filter(Boolean))];
-  const paginatedLabels = labels.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const uniqueCategories = Array.isArray(labels) ? [...new Set(labels.map(l => l.bottleCategory).filter(Boolean))] : [];
+  const paginatedLabels = Array.isArray(labels) ? labels.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage) : [];
 
   const Pagination = () => {
     const pages = Math.ceil(labels.length / rowsPerPage);
@@ -334,7 +343,7 @@ export default function LabelManagement() {
                   <select name="productId" value={formData.productId} onChange={handleInputChange} className={inputCls}
                     disabled={bottlesLoading}>
                     <option value="">{bottlesLoading ? 'Loading bottles...' : '-- Select Bottle --'}</option>
-                    {bottles.map(b => (
+                    {Array.isArray(bottles) && bottles.map(b => (
                       <option key={b._id} value={b._id}>
                         {b.name} — {b.category}
                       </option>
@@ -446,14 +455,14 @@ export default function LabelManagement() {
               <h3 className="text-lg font-semibold text-gray-900">
                 Usage History: {historyLabel?.bottleName}
               </h3>
-              <button 
-                onClick={() => setHistoryModalOpen(false)} 
+              <button
+                onClick={() => setHistoryModalOpen(false)}
                 className="p-2 text-gray-400 hover:bg-white rounded-xl"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1">
               {historyLoading ? (
                 <div className="flex justify-center py-10">
@@ -470,7 +479,7 @@ export default function LabelManagement() {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-sm font-semibold text-gray-900">Bottle Production</span>
-                          <span className="text-xs text-gray-500">• {new Date(item.date).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium' })}</span>
+                          <span className="text-xs text-gray-500">• {item.date ? new Date(item.date).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium' }) : 'N/A'}</span>
                         </div>
                         <p className="text-sm text-gray-600">Recorded by: {item.recordedBy}</p>
                         {item.remarks && <p className="text-xs text-gray-500 mt-1">Remarks: {item.remarks}</p>}
@@ -487,7 +496,7 @@ export default function LabelManagement() {
             </div>
 
             <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-end">
-              <button 
+              <button
                 onClick={() => setHistoryModalOpen(false)}
                 className="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-medium transition-colors"
               >
