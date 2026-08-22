@@ -37,7 +37,7 @@ function useDebounce(callback, delay) {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    
+
     timeoutRef.current = setTimeout(() => {
       callbackRef.current(...args);
     }, delay);
@@ -50,7 +50,7 @@ export default function BottleProduction() {
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
-  
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -113,7 +113,7 @@ export default function BottleProduction() {
           getBottleTypes(),
           getPreformTypes()
         ]);
-        
+
         setCaps(Array.isArray(capsRes?.data) ? capsRes.data : Array.isArray(capsRes) ? capsRes : []);
         setLabels(Array.isArray(labelsRes?.data) ? labelsRes.data : Array.isArray(labelsRes) ? labelsRes : []);
         setBottleTypes(Array.isArray(btRes?.data) ? btRes.data : Array.isArray(btRes) ? btRes : []);
@@ -202,9 +202,7 @@ export default function BottleProduction() {
   };
 
   useEffect(() => {
-    if (allProductionData.length > 0) {
-      applyLocalFilters(allProductionData, listFilters);
-    }
+    applyLocalFilters(allProductionData, listFilters);
   }, [allProductionData, listFilters]);
 
   // Local filter change
@@ -254,6 +252,8 @@ export default function BottleProduction() {
         preformTypeId: formData.preformTypeId,
         boxes: Number(bottleInput.boxesProduced),
         bottlesPerBox: Number(bottleInput.bottlesPerBox),
+        bottleCategoryId: bottleInput.bottleId,
+        bottleId: bottleInput.bottleId,
         bottleName: selectedCat ? `${selectedCat.bottleName} - ${selectedCat.category}` : '',
         labelId: bottleInput.labelId,
         capId: bottleInput.capId,
@@ -261,7 +261,7 @@ export default function BottleProduction() {
       };
 
       console.log('📤 Sending availability check with params:', params);
-      
+
       const res = await checkMaterialAvailability(params);
 
       console.log('✅ Availability check response:', res);
@@ -275,11 +275,11 @@ export default function BottleProduction() {
 
     } catch (err) {
       console.error('❌ Availability check failed:', err);
-      
+
       if (err.response) {
         console.error('Error response status:', err.response.status);
         console.error('Error response data:', err.response.data);
-        
+
         if (err.response.status === 400) {
           setError(`Validation error: ${err.response.data?.message || 'Missing required parameters'}`);
         } else if (err.response.status === 404) {
@@ -294,7 +294,7 @@ export default function BottleProduction() {
         console.error('Request setup error:', err.message);
         setError(`Request error: ${err.message}`);
       }
-      
+
       setAvailability(null);
     } finally {
       setChecking(false);
@@ -312,13 +312,13 @@ export default function BottleProduction() {
 
   const handleBottleInputChange = (e) => {
     const { name, value } = e.target;
-    
+
     // Auto-fill bottlesPerBox and preformGramage when bottleId is selected
     if (name === 'bottleId' && value) {
       const selectedCat = bottleTypes.find(c => c._id === value);
       if (selectedCat) {
-        setBottleInput(prev => ({ 
-          ...prev, 
+        setBottleInput(prev => ({
+          ...prev,
           [name]: value,
           bottlesPerBox: selectedCat.bottlesPerBox.toString(),
           preformGramage: selectedCat.preformGramage.toString()
@@ -326,7 +326,7 @@ export default function BottleProduction() {
         return;
       }
     }
-    
+
     setBottleInput(prev => ({ ...prev, [name]: value }));
   };
 
@@ -347,6 +347,7 @@ export default function BottleProduction() {
     setFormData(prev => ({
       ...prev,
       bottles: [...prev.bottles, {
+        bottleId: bottleInput.bottleId,
         bottleName: `${cat.bottleName} - ${cat.category}`,
         categorySize: cat?.category || '',
         boxesProduced: parseInt(bottleInput.boxesProduced, 10),
@@ -385,6 +386,7 @@ export default function BottleProduction() {
       const payload = {
         preformTypeId: formData.preformTypeId,
         producedBottles: formData.bottles.map(b => ({
+          bottleId: b.bottleId,
           bottleName: b.bottleName,
           boxesProduced: b.boxesProduced,
           bottlesPerBox: b.bottlesPerBox,
@@ -552,9 +554,9 @@ export default function BottleProduction() {
               />
             </div>
 
-             <div className="flex items-end">
-              <Button 
-                onClick={handleAddBottle} 
+            <div className="flex items-end">
+              <Button
+                onClick={handleAddBottle}
                 disabled={checking || (availability && !availability.canProduce)}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
@@ -570,9 +572,9 @@ export default function BottleProduction() {
                 {formData.bottles.map((bottle, index) => (
                   <div key={index} className="flex justify-between items-center bg-white p-3 rounded border border-blue-200">
                     <span className="text-sm text-gray-800">
-                      <strong>{bottle.bottleName} {bottle.categorySize ? `- ${bottle.categorySize}` : ''}</strong> | {bottle.boxesProduced} Boxes x {bottle.bottlesPerBox} 
+                      <strong>{bottle.bottleName} {bottle.categorySize ? `- ${bottle.categorySize}` : ''}</strong> | {bottle.boxesProduced} Boxes x {bottle.bottlesPerBox}
                       | Label: {bottle.labelName} | Cap: {bottle.capName}
-                      <br/><span className="text-gray-500">Usage: {(bottle.boxesProduced * bottle.bottlesPerBox * bottle.preformGramage / 1000).toFixed(2)}kg</span>
+                      <br /><span className="text-gray-500">Usage: {(bottle.boxesProduced * bottle.bottlesPerBox * bottle.preformGramage / 1000).toFixed(2)}kg</span>
                     </span>
                     <button onClick={() => handleRemoveBottle(index)} className="text-red-500 hover:text-red-700">
                       <Trash2 size={16} />
@@ -620,11 +622,10 @@ export default function BottleProduction() {
         {availability && (
           <div className="mb-6">
             {/* Overall Status Banner */}
-            <div className={`p-4 mb-4 rounded-lg border-2 ${
-              availability.canProduce 
-                ? 'bg-green-50 border-green-400' 
+            <div className={`p-4 mb-4 rounded-lg border-2 ${availability.canProduce
+                ? 'bg-green-50 border-green-400'
                 : 'bg-red-50 border-red-400'
-            }`}>
+              }`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   {availability.canProduce ? (
@@ -637,18 +638,16 @@ export default function BottleProduction() {
                     </svg>
                   )}
                   <div>
-                    <p className={`font-bold text-lg ${
-                      availability.canProduce ? 'text-green-800' : 'text-red-800'
-                    }`}>
-                      {availability.canProduce 
-                        ? 'Production Ready ✓' 
+                    <p className={`font-bold text-lg ${availability.canProduce ? 'text-green-800' : 'text-red-800'
+                      }`}>
+                      {availability.canProduce
+                        ? 'Production Ready ✓'
                         : 'Insufficient Materials ✗'}
                     </p>
-                    <p className={`text-sm ${
-                      availability.canProduce ? 'text-green-700' : 'text-red-700'
-                    }`}>
-                      {availability.canProduce 
-                        ? 'All required materials are available' 
+                    <p className={`text-sm ${availability.canProduce ? 'text-green-700' : 'text-red-700'
+                      }`}>
+                      {availability.canProduce
+                        ? 'All required materials are available'
                         : 'Some materials are insufficient for production'}
                     </p>
                   </div>
@@ -675,7 +674,7 @@ export default function BottleProduction() {
               <div>
                 <h4 className="text-md font-semibold text-gray-800 mb-3">Material Availability Status</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  
+
                   {/* Preforms */}
                   {availability.availability.preforms && (
                     <MaterialCard
@@ -704,8 +703,8 @@ export default function BottleProduction() {
                       data={{
                         available: availability.availability.shrinkRoll.available,
                         sufficient: availability.availability.shrinkRoll.sufficient,
-                        shortage: availability.availability.shrinkRoll.sufficient 
-                          ? 0 
+                        shortage: availability.availability.shrinkRoll.sufficient
+                          ? 0
                           : availability.availability.shrinkRoll.required - availability.availability.shrinkRoll.available
                       }}
                       required={availability.availability.shrinkRoll.required}
@@ -721,8 +720,8 @@ export default function BottleProduction() {
                       data={{
                         available: availability.availability.labels.available,
                         sufficient: availability.availability.labels.sufficient,
-                        shortage: availability.availability.labels.sufficient 
-                          ? 0 
+                        shortage: availability.availability.labels.sufficient
+                          ? 0
                           : availability.availability.labels.required - availability.availability.labels.available
                       }}
                       required={availability.availability.labels.required}
@@ -796,9 +795,9 @@ export default function BottleProduction() {
           pagination={pagination}
           columns={[
             { key: 'preformType', label: 'Preform Type', render: (row) => row.preformType?.name || row.preformType || 'N/A' },
-            { 
-              key: 'producedBottles', 
-              label: 'Produced Bottles', 
+            {
+              key: 'producedBottles',
+              label: 'Produced Bottles',
               render: (row) => {
                 if (row.producedBottles && row.producedBottles.length > 0) {
                   return row.producedBottles.map((b, i) => (
@@ -809,11 +808,11 @@ export default function BottleProduction() {
                 }
                 // Fallback for old data format
                 return `${row.bottleCategory || 'N/A'}: ${row.boxesProduced || 0} boxes`;
-              } 
+              }
             },
-            { 
-              key: 'totalBottles', 
-              label: 'Total Bottles', 
+            {
+              key: 'totalBottles',
+              label: 'Total Bottles',
               render: (row) => {
                 if (row.producedBottles && row.producedBottles.length > 0) {
                   return row.producedBottles.reduce((acc, curr) => acc + (curr.boxesProduced * curr.bottlesPerBox), 0);
@@ -821,33 +820,54 @@ export default function BottleProduction() {
                 return row.details?.totalBottles || (row.boxesProduced * row.bottlesPerBox) || 0;
               }
             },
-            { 
-              key: 'productionDate', 
-              label: 'Production Date', 
-              render: (row) => new Date(row.productionDate).toLocaleDateString() 
+            {
+              key: 'productionDate',
+              label: 'Production Date',
+              render: (row) => new Date(row.productionDate).toLocaleDateString()
             },
-            { 
-              key: 'recordedBy', 
-              label: 'Recorded By', 
-              render: (row) => row.recordedBy?.name || 'N/A' 
+            {
+              key: 'recordedBy',
+              label: 'Recorded By',
+              render: (row) => row.recordedBy?.name || 'N/A'
             },
-            { 
-              key: 'preformBatch', 
-              label: 'Preform Batch', 
+            {
+              key: 'preformBatch',
+              label: 'Preform Batch',
               render: (row) => {
                 // Check if preformBatchUsage exists and has data
                 if (row.details?.preformBatchUsage && row.details.preformBatchUsage.length > 0) {
-                  return row.details.preformBatchUsage.map(batch => 
-                    `Batch: ${batch.batchId} (${batch.quantityUsed} used)`
-                  ).join(', ');
+                  return row.details.preformBatchUsage.map((batch, i) => {
+                    const bId = typeof batch.batchId === 'object' ? (batch.batchId?._id || 'Batch') : (batch.batchId || 'Batch');
+                    const qUsed = batch.quantityUsed != null ? Number(batch.quantityUsed).toFixed(2) : '0.00';
+                    return (
+                      <div key={i} className="text-xs">
+                        Batch: {bId} ({qUsed} Kg used)
+                      </div>
+                    );
+                  });
                 }
                 return 'N/A';
               }
             },
-            { 
-              key: 'shrinkRollUsed', 
-              label: 'Shrink Roll Used', 
-              render: (row) => row.details?.shrinkRollUsed ? `${row.details.shrinkRollUsed} Kg` : 'N/A'
+            {
+              key: 'preformUsedKg',
+              label: 'Preform Used (Kg)',
+              render: (row) => {
+                let usedKg = row.totalPreformUsedKg;
+                if (usedKg === undefined || usedKg === null) {
+                  if (row.details?.preformBatchUsage && row.details.preformBatchUsage.length > 0) {
+                    usedKg = row.details.preformBatchUsage.reduce((sum, b) => sum + (Number(b.quantityUsed) || 0), 0);
+                  } else if (row.producedBottles && row.producedBottles.length > 0) {
+                    usedKg = row.producedBottles.reduce((sum, b) => sum + (((b.boxesProduced * b.bottlesPerBox) * (b.preformGramage || 0)) / 1000), 0);
+                  }
+                }
+                return usedKg != null && !isNaN(usedKg) ? `${Number(usedKg).toFixed(2)} Kg` : 'N/A';
+              }
+            },
+            {
+              key: 'shrinkRollUsed',
+              label: 'Shrink Roll Used',
+              render: (row) => row.details?.shrinkRollUsed != null ? `${Number(row.details.shrinkRollUsed).toFixed(2)} Kg` : 'N/A'
             },
             {
               key: 'actions',
@@ -886,16 +906,16 @@ export default function BottleProduction() {
               <h3 className="text-lg font-semibold text-gray-900">
                 Production Details
               </h3>
-              <button 
-                onClick={() => setSelectedHistory(null)} 
+              <button
+                onClick={() => setSelectedHistory(null)}
                 className="p-2 text-gray-400 hover:bg-white rounded-xl"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto max-h-[70vh]">
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                 <div>
                   <p className="text-xs text-gray-500 mb-1">Production Date</p>
                   <p className="font-medium text-gray-900">{new Date(selectedHistory.productionDate).toLocaleDateString()}</p>
@@ -914,6 +934,28 @@ export default function BottleProduction() {
                     {selectedHistory.producedBottles && selectedHistory.producedBottles.length > 0
                       ? selectedHistory.producedBottles.reduce((acc, curr) => acc + (curr.boxesProduced * curr.bottlesPerBox), 0)
                       : selectedHistory.details?.totalBottles || (selectedHistory.boxesProduced * selectedHistory.bottlesPerBox) || 0}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Preform Used</p>
+                  <p className="font-semibold text-blue-600">
+                    {(() => {
+                      let usedKg = selectedHistory.totalPreformUsedKg;
+                      if (usedKg == null) {
+                        if (selectedHistory.details?.preformBatchUsage?.length > 0) {
+                          usedKg = selectedHistory.details.preformBatchUsage.reduce((s, b) => s + (Number(b.quantityUsed) || 0), 0);
+                        } else if (selectedHistory.producedBottles?.length > 0) {
+                          usedKg = selectedHistory.producedBottles.reduce((s, b) => s + (((b.boxesProduced * b.bottlesPerBox) * (b.preformGramage || 0)) / 1000), 0);
+                        }
+                      }
+                      return usedKg != null && !isNaN(usedKg) ? `${Number(usedKg).toFixed(2)} Kg` : 'N/A';
+                    })()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Shrink Roll Used</p>
+                  <p className="font-medium text-gray-900">
+                    {selectedHistory.details?.shrinkRollUsed != null ? `${Number(selectedHistory.details.shrinkRollUsed).toFixed(2)} Kg` : 'N/A'}
                   </p>
                 </div>
               </div>
@@ -965,9 +1007,9 @@ export default function BottleProduction() {
                 </div>
               )}
             </div>
-            
+
             <div className="p-4 border-t border-gray-100 bg-gray-50/50 flex justify-end">
-              <button 
+              <button
                 onClick={() => setSelectedHistory(null)}
                 className="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition-colors"
               >
@@ -998,17 +1040,15 @@ function MaterialCard({ title, icon, data, required, unit = 'nos' }) {
   const shortage = data.shortage || 0;
 
   return (
-    <div className={`p-4 rounded-lg border-2 ${
-      isAvailable ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'
-    }`}>
+    <div className={`p-4 rounded-lg border-2 ${isAvailable ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'
+      }`}>
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center">
           <span className="text-2xl mr-2">{icon}</span>
           <h5 className="font-semibold text-gray-800">{title}</h5>
         </div>
-        <span className={`px-2 py-1 rounded text-xs font-medium ${
-          isAvailable ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
-        }`}>
+        <span className={`px-2 py-1 rounded text-xs font-medium ${isAvailable ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+          }`}>
           {isAvailable ? '✓ Sufficient' : '✗ Insufficient'}
         </span>
       </div>

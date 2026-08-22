@@ -279,24 +279,88 @@ export default function ProductionList({
 
       {/* Pagination */}
       {pagination && (
-        <div className="mt-4 flex items-center justify-between">
-          <div className="text-sm text-gray-600">
-            Page {pagination.currentPage || pagination.page} of {pagination.totalPages} ({pagination.totalRecords || pagination.total} total)
+        <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4 text-sm text-gray-600">
+            <span>
+              Showing <span className="font-semibold text-gray-800">{pagination.totalRecords === 0 ? 0 : ((pagination.currentPage || 1) - 1) * (filters.limit || 10) + 1}</span> to <span className="font-semibold text-gray-800">{Math.min((pagination.currentPage || 1) * (filters.limit || 10), pagination.totalRecords || 0)}</span> of <span className="font-semibold text-gray-800">{pagination.totalRecords || 0}</span> entries
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-500">Rows per page:</span>
+              <select
+                value={filters.limit || 10}
+                onChange={(e) => onFilterChange('limit', parseInt(e.target.value, 10))}
+                className="px-2 py-1 border border-gray-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
           </div>
-          <div className="flex gap-2">
+
+          <div className="flex items-center gap-1">
             <button
-              onClick={() => onPageChange((pagination.currentPage || pagination.page) - 1)}
-              disabled={!(pagination.hasPrevPage ?? (pagination.currentPage || pagination.page) > 1)}
-              className="p-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              onClick={() => onPageChange((pagination.currentPage || 1) - 1)}
+              disabled={!(pagination.hasPrevPage ?? (pagination.currentPage || 1) > 1)}
+              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors flex items-center gap-1"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={16} /> Prev
             </button>
+
+            {(() => {
+              const current = pagination.currentPage || 1;
+              const total = pagination.totalPages || 1;
+              const pages = [];
+              if (total <= 7) {
+                for (let i = 1; i <= total; i++) pages.push(i);
+              } else {
+                if (current <= 4) {
+                  for (let i = 1; i <= 5; i++) pages.push(i);
+                  pages.push('...');
+                  pages.push(total);
+                } else if (current >= total - 3) {
+                  pages.push(1);
+                  pages.push('...');
+                  for (let i = total - 4; i <= total; i++) pages.push(i);
+                } else {
+                  pages.push(1);
+                  pages.push('...');
+                  pages.push(current - 1);
+                  pages.push(current);
+                  pages.push(current + 1);
+                  pages.push('...');
+                  pages.push(total);
+                }
+              }
+              return pages.map((p, idx) =>
+                p === '...' ? (
+                  <span key={`dots-${idx}`} className="px-2 text-gray-400 text-sm select-none">
+                    ...
+                  </span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => onPageChange(p)}
+                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                      current === p
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                )
+              );
+            })()}
+
             <button
-              onClick={() => onPageChange((pagination.currentPage || pagination.page) + 1)}
-              disabled={!(pagination.hasNextPage ?? (pagination.currentPage || pagination.page) < pagination.totalPages)}
-              className="p-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              onClick={() => onPageChange((pagination.currentPage || 1) + 1)}
+              disabled={!(pagination.hasNextPage ?? (pagination.currentPage || 1) < (pagination.totalPages || 1))}
+              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors flex items-center gap-1"
             >
-              <ChevronRight size={20} />
+              Next <ChevronRight size={16} />
             </button>
           </div>
         </div>
@@ -304,4 +368,3 @@ export default function ProductionList({
     </div>
   );
 }
-

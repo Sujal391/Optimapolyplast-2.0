@@ -312,6 +312,20 @@ export const deleteCap = async (id) => {
   }
 };
 
+/**
+ * Get full history for a cap
+ * GET /api/stock/cap/:id/history
+ * @param {String} id - Cap ID
+ */
+export const getCapHistory = async (id) => {
+  try {
+    const response = await apiClient.get(`stock/cap/${id}/history`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
 // <-----------------------------------LABEL PRODUCTION APIs------------------------------------>
 
 /**
@@ -965,6 +979,35 @@ export const updatePreformType = async (id, data) => {
 export const deletePreformType = async (id) => {
   try {
     const response = await apiClient.delete(`stock/preform-type/${id}`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+/**
+ * Adjust stock for a preform type (addition, reduction, set_value)
+ * POST /stock/preform-type/:id/adjust-stock
+ * @param {string} id
+ * @param {Object} data - { changeType, quantityKg, notes?, description? }
+ */
+export const adjustPreformStock = async (id, data) => {
+  try {
+    const response = await apiClient.post(`stock/preform-type/${id}/adjust-stock`, data);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+/**
+ * Get full stock and production history for a preform type
+ * GET /stock/preform-type/:id/history
+ * @param {string} id
+ */
+export const getPreformTypeHistory = async (id) => {
+  try {
+    const response = await apiClient.get(`stock/preform-type/${id}/history`);
     return response.data;
   } catch (error) {
     throw error.response?.data || error;

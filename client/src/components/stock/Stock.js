@@ -16,16 +16,16 @@ api.interceptors.request.use(
 );
 
 export default function StockManagement() {
-  const [isFormOpen, setIsFormOpen]     = useState(false);
-  const [products, setProducts]         = useState([]);
-  const [loading, setLoading]           = useState(true);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState("");
-  const [formData, setFormData]         = useState({ boxes: "", changeType: "addition", notes: "" });
-  const [error, setError]               = useState("");
-  const [history, setHistory]           = useState([]);
+  const [formData, setFormData] = useState({ boxes: "", changeType: "addition", notes: "" });
+  const [error, setError] = useState("");
+  const [history, setHistory] = useState([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [historyTitle, setHistoryTitle] = useState("Stock History");
-  const [expanded, setExpanded]         = useState(null);
+  const [expanded, setExpanded] = useState(null);
 
   useEffect(() => { fetchProducts(); }, []);
 
@@ -44,20 +44,26 @@ export default function StockManagement() {
 
   const getStockHistory = async (productId, productName) => {
     try {
+      setError(null);
       const response = await api.get(`/stock/history/${productId}`);
       if (response.data?.success) {
-        const processedHistory = response.data.data.updateHistory.map((update) => ({
+        const updateHistory = response.data.data?.updateHistory || [];
+        const prodData = response.data.data?.productId;
+        const prodId = prodData?._id || productId;
+        const prodName = prodData?.name || productName;
+
+        const processedHistory = updateHistory.map((update) => ({
           ...update,
-          productId: { _id: response.data.data.productId._id, name: response.data.data.productId.name },
+          productId: { _id: prodId, name: prodName },
         }));
         setHistory(processedHistory);
         setHistoryTitle(`History of ${productName}`);
         setIsHistoryOpen(true);
       } else {
-        setError("No stock history found for this product.");
+        setError(response.data?.message || "No stock history found for this product.");
       }
     } catch (err) {
-      setError("Error fetching stock history: " + err.message);
+      setError("Error fetching stock history: " + (err.response?.data?.message || err.message));
     }
   };
 
@@ -85,7 +91,7 @@ export default function StockManagement() {
     e.preventDefault();
     if (!selectedProduct || !formData.boxes) { setError("Please fill in all required fields."); return; }
     try {
-      const userId   = cookies.get("userId");
+      const userId = cookies.get("userId");
       const response = await api.put("/stock/update-quantity", {
         productId: selectedProduct, boxes: formData.boxes,
         changeType: formData.changeType, notes: formData.notes, updatedBy: userId,
@@ -106,8 +112,8 @@ export default function StockManagement() {
   const toggleDescription = (id) => setExpanded(expanded === id ? null : id);
 
   const changeTypeColor = (type) => {
-    if (type === "addition")   return "text-green-600 bg-green-50 border-green-100";
-    if (type === "reduction")  return "text-red-600 bg-red-50 border-red-100";
+    if (type === "addition") return "text-green-600 bg-green-50 border-green-100";
+    if (type === "reduction") return "text-red-600 bg-red-50 border-red-100";
     return "text-amber-600 bg-amber-50 border-amber-100";
   };
 
@@ -366,31 +372,38 @@ export default function StockManagement() {
               </button>
             </div>
             <div className="overflow-auto flex-1">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-gray-50 border-b border-gray-100">
-                  <tr>
-                    {["Product", "Updated By", "Boxes", "Change Type", "Notes", "Date"].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {history.map((entry, index) => (
-                    <tr key={index} className="hover:bg-amber-50/30 transition-colors">
-                      <td className="px-4 py-3 font-medium text-gray-800">{entry.productId?.name || "N/A"}</td>
-                      <td className="px-4 py-3 text-gray-600">{entry.updatedBy?.name || "N/A"}</td>
-                      <td className="px-4 py-3 font-semibold text-amber-600">{entry.boxes}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium border capitalize ${changeTypeColor(entry.changeType)}`}>
-                          {entry.changeType}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-500">{entry.notes || "—"}</td>
-                      <td className="px-4 py-3 text-gray-500">{new Date(entry.updatedAt).toLocaleString("en-IN")}</td>
+              {history.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                  <History className="h-10 w-10 mb-2 opacity-40" />
+                  <p className="text-sm font-medium">No stock history records found for this product.</p>
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-gray-50 border-b border-gray-100">
+                    <tr>
+                      {["Product", "Updated By", "Boxes", "Change Type", "Notes", "Date"].map((h) => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {history.map((entry, index) => (
+                      <tr key={index} className="hover:bg-amber-50/30 transition-colors">
+                        <td className="px-4 py-3 font-medium text-gray-800">{entry.productId?.name || "N/A"}</td>
+                        <td className="px-4 py-3 text-gray-600">{entry.updatedBy?.name || "N/A"}</td>
+                        <td className="px-4 py-3 font-semibold text-amber-600">{entry.boxes}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium border capitalize ${changeTypeColor(entry.changeType)}`}>
+                            {entry.changeType}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-500">{entry.notes || "—"}</td>
+                        <td className="px-4 py-3 text-gray-500">{new Date(entry.updatedAt).toLocaleString("en-IN")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
               <button
