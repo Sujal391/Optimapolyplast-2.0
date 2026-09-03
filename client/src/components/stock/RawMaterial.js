@@ -648,10 +648,15 @@ export default function RawMaterial() {
                         {materialDetails.recentEntries.map(entry => (
                           <div key={entry._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                             <div>
-                              <p className="font-semibold text-gray-800">{entry.quantityKg} Kg</p>
-                              <p className="text-xs text-gray-500">By: {entry.enteredBy?.name || 'Unknown'}</p>
+                              <p className="font-semibold text-gray-800">
+                                {entry.quantityKg} {materialDetails.unit || 'Kg'}
+                              </p>
+                              {entry.remarks ? (
+                                <p className="text-xs text-gray-600 line-clamp-1">{entry.remarks}</p>
+                              ) : null}
+                              <p className="text-xs text-gray-400">By: {entry.enteredBy?.name || 'Unknown'}</p>
                             </div>
-                            <p className="text-xs text-gray-400">{formatDate(entry.entryDate)}</p>
+                            <p className="text-xs text-gray-400 whitespace-nowrap ml-2">{formatDate(entry.entryDate)}</p>
                           </div>
                         ))}
                       </div>
@@ -663,10 +668,18 @@ export default function RawMaterial() {
                         {materialDetails.usageHistory.map(usage => (
                           <div key={usage._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                             <div>
-                              <p className="font-semibold text-gray-800">Used: {usage.usedRawMaterialKg} Kg</p>
-                              <p className="text-xs text-gray-500">Outcomes: {usage.outcomes?.length || 0} items</p>
+                              <p className="font-semibold text-gray-800">
+                                Used: {usage.usedRawMaterialKg} {materialDetails.unit || 'Kg'}
+                              </p>
+                              <p className="text-xs text-gray-600 font-medium">
+                                {usage.type ? `${usage.type}: ` : ''}
+                                {usage.details || (usage.outcomes?.map(o => o.outcomeItem?.itemName || o.name || '').filter(Boolean).join(', ') || 'N/A')}
+                              </p>
+                              {usage.recordedBy?.name && (
+                                <p className="text-xs text-gray-400">By: {usage.recordedBy.name}</p>
+                              )}
                             </div>
-                            <p className="text-xs text-gray-400">{formatDate(usage.productionDate)}</p>
+                            <p className="text-xs text-gray-400 whitespace-nowrap ml-2">{formatDate(usage.productionDate || usage.usageDate)}</p>
                           </div>
                         ))}
                       </div>
@@ -683,4 +696,4 @@ export default function RawMaterial() {
       )}
     </div>
   );
-}
+                }
